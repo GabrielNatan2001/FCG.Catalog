@@ -1,5 +1,6 @@
-using System.Text;
+﻿using System.Text;
 using FCG.Catalog.API.Middlewares;
+using FCG.Catalog.API.Workers;
 using FCG.Catalog.Application;
 using FCG.Catalog.Domain.Jogo.Entities;
 using FCG.Catalog.Infrastructure;
@@ -19,6 +20,10 @@ builder.Services.AddSwaggerGen(options =>
 
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplication();
+
+builder.Services.Configure<PaymentProcessedWorkerConfig>(
+    builder.Configuration.GetSection("Workers:PaymentProcessed"));
+builder.Services.AddHostedService<PaymentProcessedWorker>();
 
 var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key não configurado.");
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "FCG.Users.API";

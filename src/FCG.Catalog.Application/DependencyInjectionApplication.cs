@@ -1,5 +1,6 @@
-using FCG.Catalog.Application.Biblioteca.Services;
+﻿using FCG.Catalog.Application.Biblioteca.Services;
 using FCG.Catalog.Application.Jogo.Services;
+using FCG.Catalog.Application.Messaging.Consumers;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace FCG.Catalog.Application;
@@ -16,6 +17,7 @@ public static class DependencyInjectionApplication
         services.AddScoped<ListarBibliotecaService>();
         services.AddScoped<ComprarJogoService>();
         services.AddScoped<ConfirmarPagamentoService>();
+        services.AddScoped<IPaymentProcessedMessage, PaymentProcessedConsumer>();
 
         return services;
     }

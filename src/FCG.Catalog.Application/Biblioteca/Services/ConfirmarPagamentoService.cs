@@ -1,4 +1,4 @@
-using FCG.Catalog.Application.Messaging.Events;
+﻿using FCG.Catalog.Application.Messaging.Events;
 using FCG.Catalog.Domain.Biblioteca.Entities;
 using FCG.Catalog.Domain.Biblioteca.Interfaces;
 using FCG.Catalog.Domain.Common.Enums;
@@ -45,19 +45,21 @@ public class ConfirmarPagamentoService
             if (biblioteca is null)
             {
                 biblioteca = BibliotecaEntity.Criar(payment.UserId);
+                biblioteca.AdicionarJogo(payment.GameId);
                 await _bibliotecaRepository.Adicionar(biblioteca);
             }
+            else if (!biblioteca.PossuiJogo(payment.GameId))
+            {
+                biblioteca.AdicionarJogo(payment.GameId);
+            }
 
-            biblioteca.AdicionarJogo(payment.GameId);
             pedido.Completar();
-            _bibliotecaRepository.Atualizar(biblioteca);
         }
         else
         {
             pedido.Rejeitar();
         }
 
-        _pedidoRepository.Atualizar(pedido);
         await _pedidoRepository.SalvarAlteracoes();
     }
 }

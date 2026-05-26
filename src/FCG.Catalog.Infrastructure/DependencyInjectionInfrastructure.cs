@@ -1,10 +1,10 @@
+﻿using FCG.Catalog.Application.Messaging;
 using FCG.Catalog.Domain.Biblioteca.Interfaces;
 using FCG.Catalog.Domain.Jogo.Interfaces;
 using FCG.Catalog.Domain.Pedidos.Interfaces;
 using FCG.Catalog.Infrastructure.Data;
 using FCG.Catalog.Infrastructure.Data.Repositories;
 using FCG.Catalog.Infrastructure.Messaging;
-using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,14 +24,10 @@ public static class DependencyInjectionInfrastructure
         services.AddScoped<IBibliotecaRepository, BibliotecaRepository>();
         services.AddScoped<IPedidoRepository, PedidoRepository>();
 
-        services.AddMassTransit(x =>
-        {
-            x.UsingRabbitMq((context, cfg) =>
-            {
-                RabbitMqBusConfiguration.ConfigureHost(cfg, configuration);
-                RabbitMqBusConfiguration.ConfigureConsumerAndPublish(cfg, context, configuration);
-            });
-        });
+        services.Configure<OrderPlacedPublisherConfig>(
+            configuration.GetSection("Publishers:OrderPlaced"));
+
+        services.AddSingleton<IMessageBus, MessageBus>();
 
         return services;
     }
