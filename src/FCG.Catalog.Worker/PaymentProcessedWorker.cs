@@ -3,7 +3,7 @@ using FCG.Catalog.Application.Messaging.Consumers;
 using FCG.Catalog.Application.Messaging.Events;
 using Microsoft.Extensions.Options;
 
-namespace FCG.Catalog.API.Workers;
+namespace FCG.Catalog.Worker;
 
 public class PaymentProcessedWorker : BackgroundService
 {

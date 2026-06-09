@@ -1,4 +1,4 @@
-﻿namespace FCG.Catalog.API.Workers;
+﻿namespace FCG.Catalog.Worker;
 
 public class PaymentProcessedWorkerConfig
 {
