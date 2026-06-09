@@ -1,0 +1,10 @@
+﻿apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fcg-catalog-worker-config
+data:
+  ASPNETCORE_ENVIRONMENT: Development
+  MessageBusConfigs__RetryCount: "5"
+  Workers__PaymentProcessed__Ativo: "true"
+  Workers__PaymentProcessed__Exchange: fcg.payment.processed
+  Workers__PaymentProcessed__RoutingKey: catalog.payment-processed

@@ -1,0 +1,47 @@
+﻿apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fcg-catalog-worker
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: fcg-catalog-worker
+
+  template:
+    metadata:
+      labels:
+        app: fcg-catalog-worker
+
+    spec:
+      containers:
+        - name: fcg-catalog-worker
+          image: GabrielNatan2001/fcg-catalog-worker:latest
+
+          ports:
+            - containerPort: 8080
+
+          envFrom:
+            - configMapRef:
+                name: fcg-catalog-worker-config
+            - secretRef:
+                name: fcg-catalog-worker-secret
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
