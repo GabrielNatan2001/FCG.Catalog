@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: fcg-catalog-api
-          image: GabrielNatan2001/fcg-catalog-api:latest
+          image: gabrielnatan2001/fcg-api-catalog:latest
 
           ports:
             - containerPort: 8080

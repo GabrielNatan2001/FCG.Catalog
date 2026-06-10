@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: fcg-catalog-worker
-          image: GabrielNatan2001/fcg-catalog-worker:latest
+          image: gabrielnatan2001/fcg-worker-catalog:latest
 
           ports:
             - containerPort: 8080
