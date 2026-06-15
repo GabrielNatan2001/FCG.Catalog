@@ -1,4 +1,4 @@
-using FCG.Catalog.Domain.Base;
+﻿using FCG.Catalog.Domain.Base;
 using FCG.Catalog.Domain.Jogo.Entities;
 
 namespace FCG.Catalog.Domain.Biblioteca.Entities;
@@ -12,11 +12,12 @@ public class ItemBibliotecaEntity : BaseEntity
 
     protected ItemBibliotecaEntity() { }
 
-    private ItemBibliotecaEntity(Guid jogoId)
+    private ItemBibliotecaEntity(Guid bibliotecaId, Guid jogoId)
     {
+        BibliotecaId = bibliotecaId;
         JogoId = jogoId;
         DataAquisicao = DateTime.UtcNow;
     }
 
-    public static ItemBibliotecaEntity Criar(Guid jogoId) => new(jogoId);
+    public static ItemBibliotecaEntity Criar(Guid bibliotecaId, Guid jogoId) => new(bibliotecaId, jogoId);
 }

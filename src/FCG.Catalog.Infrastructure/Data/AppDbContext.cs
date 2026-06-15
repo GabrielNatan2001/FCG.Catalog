@@ -1,4 +1,4 @@
-using FCG.Catalog.Domain.Base;
+﻿using FCG.Catalog.Domain.Base;
 using FCG.Catalog.Domain.Biblioteca.Entities;
 using FCG.Catalog.Domain.Jogo.Entities;
 using FCG.Catalog.Domain.Pedidos.Entities;
@@ -18,6 +18,17 @@ public class AppDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            if (!typeof(BaseEntity).IsAssignableFrom(entityType.ClrType))
+                continue;
+
+            modelBuilder.Entity(entityType.ClrType)
+                .Property(nameof(BaseEntity.Id))
+                .ValueGeneratedNever();
+        }
+
         base.OnModelCreating(modelBuilder);
     }
 

@@ -1,4 +1,4 @@
-using FCG.Catalog.Domain.Base;
+﻿using FCG.Catalog.Domain.Base;
 using FCG.Catalog.Domain.Exceptions;
 
 namespace FCG.Catalog.Domain.Biblioteca.Entities;
@@ -20,7 +20,7 @@ public class BibliotecaEntity : BaseEntity
         if (PossuiJogo(jogoId))
             throw new DomainException("Este jogo já está na sua biblioteca.");
 
-        _itens.Add(ItemBibliotecaEntity.Criar(jogoId));
+        _itens.Add(ItemBibliotecaEntity.Criar(Id, jogoId));
         AtualizarDataAtualizacao();
     }
 
