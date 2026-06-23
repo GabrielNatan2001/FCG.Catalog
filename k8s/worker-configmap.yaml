@@ -3,7 +3,7 @@ kind: ConfigMap
 metadata:
   name: fcg-catalog-worker-config
 data:
-  ASPNETCORE_ENVIRONMENT: Development
+  ASPNETCORE_ENVIRONMENT: Production
   MessageBusConfigs__RetryCount: "5"
   Workers__PaymentProcessed__Ativo: "true"
   Workers__PaymentProcessed__Exchange: fcg.payment.processed

@@ -3,7 +3,7 @@ kind: ConfigMap
 metadata:
   name: fcg-catalog-api-config
 data:
-  ASPNETCORE_ENVIRONMENT: Development
+  ASPNETCORE_ENVIRONMENT: Production
   Jwt__Issuer: FCG.Users.API
   Jwt__Audience: FCG.Client
   MessageBusConfigs__RetryCount: "5"
