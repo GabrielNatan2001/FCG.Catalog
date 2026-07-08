@@ -4,8 +4,9 @@ metadata:
   name: fcg-catalog-api-config
 data:
   ASPNETCORE_ENVIRONMENT: Production
-  Jwt__Issuer: FCG.Users.API
-  Jwt__Audience: FCG.Client
   MessageBusConfigs__RetryCount: "5"
   Publishers__OrderPlaced__Exchange: fcg.order.placed
   Publishers__OrderPlaced__RoutingKey: payments.order-placed
+  Jwt__Key: "rN8#kL2vQ9@xT5mP1!zC7$$dH4^bW6&yU"
+  Jwt__Issuer: FCG.Users.API
+  Jwt__Audience: FCG.Client
