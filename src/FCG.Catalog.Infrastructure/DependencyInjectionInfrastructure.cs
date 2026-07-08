@@ -28,6 +28,7 @@ public static class DependencyInjectionInfrastructure
             configuration.GetSection("Publishers:OrderPlaced"));
 
         services.AddSingleton<IMessageBus, MessageBus>();
+        services.AddRabbitMqTopologyInitializer(configuration);
 
         return services;
     }
