@@ -6,4 +6,8 @@
     <Project Path="src/FCG.Catalog.Infrastructure/FCG.Catalog.Infrastructure.csproj" />
     <Project Path="src/FCG.Catalog.Worker/FCG.Catalog.Worker.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/FCG.Catalog.Application.Tests/FCG.Catalog.Application.Tests.csproj" />
+    <Project Path="tests/FCG.Catalog.Domain.Tests/FCG.Catalog.Domain.Tests.csproj" />
+  </Folder>
 </Solution>
