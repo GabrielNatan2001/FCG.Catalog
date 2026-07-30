@@ -11,10 +11,39 @@ using FCG.Catalog.Domain.Jogo.Entities;
 using FCG.Catalog.Domain.Jogo.Interfaces;
 using FCG.Catalog.Domain.Pedidos.Entities;
 using FCG.Catalog.Domain.Pedidos.Interfaces;
+using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Moq;
 
 namespace FCG.Catalog.Application.Tests;
+
+internal static class TestCache
+{
+    public static IDistributedCache Create()
+    {
+        var cache = new Mock<IDistributedCache>();
+        cache.Setup(c => c.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((byte[]?)null);
+        cache.Setup(c => c.SetAsync(
+                It.IsAny<string>(),
+                It.IsAny<byte[]>(),
+                It.IsAny<DistributedCacheEntryOptions>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        cache.Setup(c => c.RemoveAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        return cache.Object;
+    }
+
+    public static IConfiguration CreateConfiguration() =>
+        new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Cache:JogosTtlSeconds"] = "60"
+            })
+            .Build();
+}
 
 public class CriarJogoServiceTests
 {
@@ -24,7 +53,7 @@ public class CriarJogoServiceTests
     public async Task Execute_ComDadosValidos_DevePersistirJogo()
     {
         _jogoRepository.Setup(r => r.SalvarAlteracoes()).ReturnsAsync(1);
-        var service = new CriarJogoService(_jogoRepository.Object);
+        var service = new CriarJogoService(_jogoRepository.Object, TestCache.Create());
         var request = new CriarJogoDto.Request
         {
             Nome = "Cyber Quest",
@@ -51,7 +80,7 @@ public class AtualizarJogoServiceTests
         _jogoRepository.Setup(r => r.ObterPorId(It.IsAny<Guid>()))
             .ReturnsAsync((JogoEntity?)null);
 
-        var service = new AtualizarJogoService(_jogoRepository.Object);
+        var service = new AtualizarJogoService(_jogoRepository.Object, TestCache.Create());
         var request = new AtualizarJogoDto.Request
         {
             Nome = "Novo",
@@ -72,7 +101,7 @@ public class AtualizarJogoServiceTests
         _jogoRepository.Setup(r => r.ObterPorId(jogo.Id)).ReturnsAsync(jogo);
         _jogoRepository.Setup(r => r.SalvarAlteracoes()).ReturnsAsync(1);
 
-        var service = new AtualizarJogoService(_jogoRepository.Object);
+        var service = new AtualizarJogoService(_jogoRepository.Object, TestCache.Create());
         var request = new AtualizarJogoDto.Request
         {
             Nome = "Atualizado",
@@ -99,7 +128,7 @@ public class AlterarStatusJogoServiceTests
         _jogoRepository.Setup(r => r.ObterPorId(jogo.Id)).ReturnsAsync(jogo);
         _jogoRepository.Setup(r => r.SalvarAlteracoes()).ReturnsAsync(1);
 
-        var service = new AlterarStatusJogoService(_jogoRepository.Object);
+        var service = new AlterarStatusJogoService(_jogoRepository.Object, TestCache.Create());
 
         await service.Execute(jogo.Id);
 
@@ -114,7 +143,7 @@ public class AlterarStatusJogoServiceTests
         _jogoRepository.Setup(r => r.ObterPorId(jogo.Id)).ReturnsAsync(jogo);
         _jogoRepository.Setup(r => r.SalvarAlteracoes()).ReturnsAsync(1);
 
-        var service = new AlterarStatusJogoService(_jogoRepository.Object);
+        var service = new AlterarStatusJogoService(_jogoRepository.Object, TestCache.Create());
 
         await service.Execute(jogo.Id);
 
@@ -135,7 +164,7 @@ public class ListarJogosServiceTests
         var repository = new Mock<IJogoRepository>();
         repository.Setup(r => r.ObterTodos()).ReturnsAsync(jogos);
 
-        var service = new ListarJogosService(repository.Object);
+        var service = new ListarJogosService(repository.Object, TestCache.Create(), TestCache.CreateConfiguration());
 
         var result = await service.Execute();
 
@@ -157,7 +186,7 @@ public class ListarJogosAtivosServiceTests
         var repository = new Mock<IJogoRepository>();
         repository.Setup(r => r.ObterTodos()).ReturnsAsync(new[] { ativo, inativo });
 
-        var service = new ListarJogosAtivosService(repository.Object);
+        var service = new ListarJogosAtivosService(repository.Object, TestCache.Create(), TestCache.CreateConfiguration());
 
         var result = await service.Execute();
 

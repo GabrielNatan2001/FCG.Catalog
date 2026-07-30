@@ -7,6 +7,7 @@ using FCG.Catalog.Infrastructure.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Prometheus;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -54,7 +55,9 @@ if (app.Environment.IsDevelopment())
 
 app.UseMiddleware<ExceptionMiddleware>();
 app.UseHttpsRedirection();
+app.UseHttpMetrics();
 app.MapHealthChecks("/health");
+app.MapMetrics();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
