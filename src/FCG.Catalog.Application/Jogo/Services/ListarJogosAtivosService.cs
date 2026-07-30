@@ -1,19 +1,38 @@
+﻿using System.Text.Json;
+using FCG.Catalog.Application.Caching;
 using FCG.Catalog.Application.Jogo.Dtos;
 using FCG.Catalog.Domain.Common.Enums;
 using FCG.Catalog.Domain.Jogo.Interfaces;
+using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Configuration;
 
 namespace FCG.Catalog.Application.Jogo.Services;
 
 public class ListarJogosAtivosService
 {
     private readonly IJogoRepository _jogoRepository;
+    private readonly IDistributedCache _cache;
+    private readonly TimeSpan _ttl;
 
-    public ListarJogosAtivosService(IJogoRepository jogoRepository) => _jogoRepository = jogoRepository;
+    public ListarJogosAtivosService(
+        IJogoRepository jogoRepository,
+        IDistributedCache cache,
+        IConfiguration configuration)
+    {
+        _jogoRepository = jogoRepository;
+        _cache = cache;
+        var seconds = configuration.GetValue("Cache:JogosTtlSeconds", 60);
+        _ttl = TimeSpan.FromSeconds(seconds);
+    }
 
     public async Task<IReadOnlyCollection<JogoItemDto>> Execute()
     {
+        var cached = await _cache.GetStringAsync(JogoCacheKeys.Ativos);
+        if (!string.IsNullOrEmpty(cached))
+            return JsonSerializer.Deserialize<List<JogoItemDto>>(cached) ?? [];
+
         var jogos = await _jogoRepository.ObterTodos();
-        return jogos
+        var result = jogos
             .Where(x => x.Status == EStatus.Ativo)
             .Select(x => new JogoItemDto
             {
@@ -25,5 +44,12 @@ public class ListarJogosAtivosService
                 Status = x.Status
             })
             .ToList();
+
+        await _cache.SetStringAsync(
+            JogoCacheKeys.Ativos,
+            JsonSerializer.Serialize(result),
+            new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = _ttl });
+
+        return result;
     }
 }

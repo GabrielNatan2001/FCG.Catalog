@@ -9,3 +9,5 @@ data:
   MessageBusConfigs__RetryCount: "5"
   Publishers__OrderPlaced__Exchange: fcg.order.placed
   Publishers__OrderPlaced__RoutingKey: payments.order-placed
+  MongoDB__Database: fcg_catalog
+  Cache__JogosTtlSeconds: "60"
