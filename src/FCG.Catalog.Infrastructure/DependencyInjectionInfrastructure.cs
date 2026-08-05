@@ -75,7 +75,13 @@ public static class DependencyInjectionInfrastructure
 
         var mongoConnection = configuration.GetConnectionString("MongoDB");
         if (!string.IsNullOrWhiteSpace(mongoConnection))
-            healthChecks.AddMongoDb(mongoConnection, name: "mongodb");
+        {
+            var mongoDatabaseName = configuration["MongoDB:Database"] ?? "fcg_catalog";
+            healthChecks.AddMongoDb(
+                clientFactory: sp => sp.GetRequiredService<IMongoClient>(),
+                databaseNameFactory: _ => mongoDatabaseName,
+                name: "mongodb");
+        }
 
         var redisConnection = configuration.GetConnectionString("Redis");
         if (!string.IsNullOrWhiteSpace(redisConnection))
