@@ -1,6 +1,6 @@
 ﻿# FCG.Catalog
 
-Microsserviço de **catálogo de jogos**, **biblioteca do usuário**, **pedidos de compra** e **avaliações** (MongoDB). Listagens de jogos usam **cache Redis**. A API recebe a compra de forma assíncrona; o worker confirma o pedido após o processamento do pagamento. Métricas Prometheus em `/metrics`.
+Microsserviço de **catálogo de jogos**, **biblioteca do usuário**, **pedidos de compra** e **avaliações** (MongoDB). Listagens de jogos usam **cache Redis**. A API recebe a compra de forma assíncrona; o worker confirma o pedido após o processamento do pagamento. Métricas Prometheus em `/metrics` e **traces/logs** via OpenTelemetry (OTLP → Tempo + Loki).
 
 ## Projetos
 

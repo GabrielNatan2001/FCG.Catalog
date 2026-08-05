@@ -11,3 +11,6 @@ data:
   Publishers__OrderPlaced__RoutingKey: payments.order-placed
   MongoDB__Database: fcg_catalog
   Cache__JogosTtlSeconds: "60"
+  OTEL_SERVICE_NAME: fcg-catalog-api
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://fcg-otel-collector:4317
+  OTEL_EXPORTER_OTLP_PROTOCOL: grpc
