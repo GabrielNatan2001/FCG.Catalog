@@ -1,6 +1,5 @@
 ﻿using System.Text;
 using FCG.Catalog.API.Middlewares;
-using FCG.Catalog.API.Observability;
 using FCG.Catalog.Application;
 using FCG.Catalog.Domain.Jogo.Entities;
 using FCG.Catalog.Infrastructure;
@@ -11,8 +10,6 @@ using Microsoft.IdentityModel.Tokens;
 using Prometheus;
 
 var builder = WebApplication.CreateBuilder(args);
-
-builder.AddFcgOpenTelemetry("fcg-catalog-api");
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
