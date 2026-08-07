@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using FCG.Catalog.API.Filters;
 using FCG.Catalog.API.Middlewares;
 using FCG.Catalog.Application;
 using FCG.Catalog.Domain.Jogo.Entities;
@@ -11,7 +12,10 @@ using Prometheus;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<DomainExceptionFilter>();
+});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
