@@ -53,13 +53,15 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseMiddleware<ExceptionMiddleware>();
 app.UseHttpsRedirection();
+// ExceptionMiddleware precisa ficar DEPOIS do UseHttpMetrics para o
+// prometheus-net registrar o status final (400/500), não o 200 padrão.
 app.UseHttpMetrics();
-app.MapHealthChecks("/health");
-app.MapMetrics();
+app.UseMiddleware<ExceptionMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
+app.MapHealthChecks("/health");
+app.MapMetrics();
 app.MapControllers();
 app.Run();
 
