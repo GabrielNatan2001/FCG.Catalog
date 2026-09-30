@@ -14,80 +14,132 @@ env:
   WORKER_CONTAINER_NAME: fcg-catalog-worker
 
 jobs:
-  build-test-deploy:
+  pipeline:
+    name: "Catalog → Build → ACR → AKS"
     runs-on: ubuntu-latest
     permissions:
       contents: read
 
     steps:
-      - name: Checkout
+      - name: "01 · Checkout do código"
         uses: actions/checkout@v4
 
-      - name: Setup .NET
+      - name: "02 · Setup .NET 8"
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "8.0.x"
 
-      - name: Restore
-        run: dotnet restore FCG.Catalog.slnx
+      - name: "03 · Restore pacotes NuGet"
+        run: |
+          echo "::group::dotnet restore"
+          dotnet restore FCG.Catalog.slnx
+          echo "::endgroup::"
+          echo "✅ Restore concluído" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Build
-        run: dotnet build FCG.Catalog.slnx --configuration Release --no-restore
+      - name: "04 · Build (Release)"
+        run: |
+          echo "::group::dotnet build"
+          dotnet build FCG.Catalog.slnx --configuration Release --no-restore
+          echo "::endgroup::"
+          echo "✅ Build Release OK" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Test
-        run: dotnet test FCG.Catalog.slnx --configuration Release --no-build --verbosity normal
+      - name: "05 · Testes unitários"
+        run: |
+          echo "::group::dotnet test"
+          dotnet test FCG.Catalog.slnx --configuration Release --no-build --verbosity normal
+          echo "::endgroup::"
+          echo "✅ Testes passaram" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Azure Login
+      - name: "06 · Login na Azure"
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Login to ACR
+      - name: "07 · Login no ACR (registry privado)"
         uses: docker/login-action@v3
         with:
           registry: ${{ secrets.ACR_LOGIN_SERVER }}
           username: ${{ secrets.ACR_USERNAME }}
           password: ${{ secrets.ACR_PASSWORD }}
 
-      - name: Build & Push Catalog API image
+      - name: "08 · Build & Push imagem Catalog API no ACR"
         run: |
           IMAGE=${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}
+          echo "📦 Gerando imagem API: $IMAGE:${{ github.sha }}"
           docker build -t $IMAGE:${{ github.sha }} -t $IMAGE:latest -f Dockerfile .
           docker push $IMAGE:${{ github.sha }}
           docker push $IMAGE:latest
+          echo "✅ Catalog API publicada no ACR" >> "$GITHUB_STEP_SUMMARY"
+          echo "- \`$IMAGE:${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Build & Push Catalog Worker image
+      - name: "09 · Build & Push imagem Catalog Worker no ACR"
         run: |
           IMAGE=${{ secrets.ACR_LOGIN_SERVER }}/${{ env.WORKER_IMAGE_NAME }}
+          echo "📦 Gerando imagem Worker: $IMAGE:${{ github.sha }}"
           docker build -t $IMAGE:${{ github.sha }} -t $IMAGE:latest -f Dockerfile.worker .
           docker push $IMAGE:${{ github.sha }}
           docker push $IMAGE:latest
+          echo "✅ Catalog Worker publicado no ACR" >> "$GITHUB_STEP_SUMMARY"
+          echo "- \`$IMAGE:${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Security scan API (Trivy)
+      - name: "10 · Security scan API (Trivy) — desejável"
         continue-on-error: true
         run: |
+          echo "🔍 Escaneando vulnerabilidades CRITICAL/HIGH..."
           docker run --rm aquasec/trivy:latest image \
             --severity CRITICAL,HIGH \
             --exit-code 0 \
             ${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          echo "✅ Scan Trivy executado (não bloqueia o deploy)" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Get AKS credentials
+      - name: "11 · Conectar no cluster AKS"
         run: |
+          echo "☸️  Obtendo credenciais do AKS ${{ secrets.AKS_CLUSTER_NAME }}..."
           az aks get-credentials \
             --resource-group ${{ secrets.AKS_RESOURCE_GROUP }} \
             --name ${{ secrets.AKS_CLUSTER_NAME }} \
             --overwrite-existing
+          kubectl get nodes
+          echo "✅ Conectado ao AKS" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Deploy Catalog API Rolling Update
+      - name: "12 · Deploy Catalog API no AKS (Rolling Update)"
         run: |
           IMAGE=${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          echo "🚀 Atualizando deployment/${{ env.DEPLOYMENT_NAME }} → $IMAGE"
           kubectl set image deployment/${{ env.DEPLOYMENT_NAME }} \
             ${{ env.CONTAINER_NAME }}=$IMAGE
+          echo "⏳ Aguardando Rolling Update..."
           kubectl rollout status deployment/${{ env.DEPLOYMENT_NAME }} --timeout=180s
+          kubectl get pods -l app=${{ env.DEPLOYMENT_NAME }} -o wide
+          echo "✅ Catalog API atualizada no AKS" >> "$GITHUB_STEP_SUMMARY"
+          echo "- \`$IMAGE\`" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Deploy Catalog Worker Rolling Update
+      - name: "13 · Deploy Catalog Worker no AKS (Rolling Update)"
         run: |
           IMAGE=${{ secrets.ACR_LOGIN_SERVER }}/${{ env.WORKER_IMAGE_NAME }}:${{ github.sha }}
+          echo "🚀 Atualizando deployment/${{ env.WORKER_DEPLOYMENT_NAME }} → $IMAGE"
           kubectl set image deployment/${{ env.WORKER_DEPLOYMENT_NAME }} \
             ${{ env.WORKER_CONTAINER_NAME }}=$IMAGE
+          echo "⏳ Aguardando Rolling Update..."
           kubectl rollout status deployment/${{ env.WORKER_DEPLOYMENT_NAME }} --timeout=180s
+          kubectl get pods -l app=${{ env.WORKER_DEPLOYMENT_NAME }} -o wide
+          echo "✅ Catalog Worker atualizado no AKS" >> "$GITHUB_STEP_SUMMARY"
+          echo "- \`$IMAGE\`" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: "14 · Resumo final"
+        if: always()
+        run: |
+          {
+            echo ""
+            echo "## Pipeline Catalog"
+            echo "| Etapa | O que faz |"
+            echo "|---|---|"
+            echo "| 01-05 | Checkout, restore, build, testes |"
+            echo "| 06-07 | Login Azure + ACR |"
+            echo "| 08-09 | Push imagens API + Worker |"
+            echo "| 10 | Scan Trivy |"
+            echo "| 11-13 | Deploy Rolling Update no AKS |"
+            echo ""
+            echo "**Commit:** \`${{ github.sha }}\`"
+            echo "**Branch:** \`${{ github.ref_name }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
