@@ -3,6 +3,7 @@ using FCG.Catalog.API.Filters;
 using FCG.Catalog.API.Middlewares;
 using FCG.Catalog.Application;
 using FCG.Catalog.Domain.Jogo.Entities;
+using FCG.Catalog.Domain.Jogo.Interfaces;
 using FCG.Catalog.Infrastructure;
 using FCG.Catalog.Infrastructure.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -50,6 +51,7 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 await SeedSampleGameAsync(app);
+await SyncSearchIndexAsync(app);
 
 if (app.Environment.IsDevelopment())
 {
@@ -86,4 +88,21 @@ static async Task SeedSampleGameAsync(WebApplication app)
 
     await db.Jogos.AddAsync(jogo);
     await db.SaveChangesAsync();
+}
+
+static async Task SyncSearchIndexAsync(WebApplication app)
+{
+    var openSearchUri = app.Configuration.GetConnectionString("OpenSearch");
+    if (string.IsNullOrWhiteSpace(openSearchUri))
+        return;
+
+    using var scope = app.Services.CreateScope();
+    var search = scope.ServiceProvider.GetRequiredService<IJogoSearchRepository>();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+    await search.GarantirIndice();
+
+    var jogos = await db.Jogos.AsNoTracking().ToListAsync();
+    foreach (var jogo in jogos)
+        await search.Indexar(jogo);
 }

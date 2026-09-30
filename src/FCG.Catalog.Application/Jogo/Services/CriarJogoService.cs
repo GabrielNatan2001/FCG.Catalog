@@ -9,11 +9,16 @@ namespace FCG.Catalog.Application.Jogo.Services;
 public class CriarJogoService
 {
     private readonly IJogoRepository _jogoRepository;
+    private readonly IJogoSearchRepository _searchRepository;
     private readonly IDistributedCache _cache;
 
-    public CriarJogoService(IJogoRepository jogoRepository, IDistributedCache cache)
+    public CriarJogoService(
+        IJogoRepository jogoRepository,
+        IJogoSearchRepository searchRepository,
+        IDistributedCache cache)
     {
         _jogoRepository = jogoRepository;
+        _searchRepository = searchRepository;
         _cache = cache;
     }
 
@@ -22,6 +27,7 @@ public class CriarJogoService
         var jogo = JogoEntity.Criar(request.Nome, request.Descricao, request.Preco, request.Categoria);
         await _jogoRepository.Adicionar(jogo);
         await _jogoRepository.SalvarAlteracoes();
+        await _searchRepository.Indexar(jogo);
         await InvalidarCache();
         return jogo.Id;
     }

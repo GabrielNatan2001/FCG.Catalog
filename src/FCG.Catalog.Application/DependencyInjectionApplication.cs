@@ -15,6 +15,7 @@ public static class DependencyInjectionApplication
         services.AddScoped<ListarJogosAtivosService>();
         services.AddScoped<AtualizarJogoService>();
         services.AddScoped<AlterarStatusJogoService>();
+        services.AddScoped<BuscarJogosService>();
         services.AddScoped<ListarBibliotecaService>();
         services.AddScoped<ComprarJogoService>();
         services.AddScoped<ConfirmarPagamentoService>();

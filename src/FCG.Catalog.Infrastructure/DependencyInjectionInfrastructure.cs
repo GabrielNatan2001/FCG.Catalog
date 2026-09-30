@@ -5,12 +5,14 @@ using FCG.Catalog.Domain.Jogo.Interfaces;
 using FCG.Catalog.Domain.Pedidos.Interfaces;
 using FCG.Catalog.Infrastructure.Data;
 using FCG.Catalog.Infrastructure.Data.Mongo;
+using FCG.Catalog.Infrastructure.Data.OpenSearch;
 using FCG.Catalog.Infrastructure.Data.Repositories;
 using FCG.Catalog.Infrastructure.Messaging;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Driver;
+using OpenSearch.Client;
 
 namespace FCG.Catalog.Infrastructure;
 
@@ -45,6 +47,20 @@ public static class DependencyInjectionInfrastructure
         else
         {
             services.AddDistributedMemoryCache();
+        }
+
+        var openSearchUri = configuration.GetConnectionString("OpenSearch");
+        if (!string.IsNullOrWhiteSpace(openSearchUri))
+        {
+            var settings = new ConnectionSettings(new Uri(openSearchUri))
+                .DefaultIndex(configuration["OpenSearch:Index"] ?? "jogos")
+                .DisableDirectStreaming();
+            services.AddSingleton<IOpenSearchClient>(_ => new OpenSearchClient(settings));
+            services.AddScoped<IJogoSearchRepository, JogoSearchRepository>();
+        }
+        else
+        {
+            services.AddSingleton<IJogoSearchRepository, NullJogoSearchRepository>();
         }
 
         services.AddScoped<IJogoRepository, JogoRepository>();
@@ -86,6 +102,19 @@ public static class DependencyInjectionInfrastructure
         var redisConnection = configuration.GetConnectionString("Redis");
         if (!string.IsNullOrWhiteSpace(redisConnection))
             healthChecks.AddRedis(redisConnection, name: "redis");
+
+        var openSearchUri = configuration.GetConnectionString("OpenSearch");
+        if (!string.IsNullOrWhiteSpace(openSearchUri))
+        {
+            healthChecks.AddAsyncCheck("opensearch", async () =>
+            {
+                using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(3) };
+                var response = await http.GetAsync(openSearchUri.TrimEnd('/') + "/_cluster/health");
+                return response.IsSuccessStatusCode
+                    ? Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Healthy()
+                    : Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Unhealthy($"HTTP {(int)response.StatusCode}");
+            });
+        }
 
         return services;
     }

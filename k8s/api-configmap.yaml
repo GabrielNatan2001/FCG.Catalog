@@ -8,4 +8,5 @@ data:
   Publishers__OrderPlaced__Exchange: fcg.order.placed
   Publishers__OrderPlaced__RoutingKey: payments.order-placed
   MongoDB__Database: fcg_catalog
+  OpenSearch__Index: jogos
   Cache__JogosTtlSeconds: "60"

@@ -9,11 +9,16 @@ namespace FCG.Catalog.Application.Jogo.Services;
 public class AlterarStatusJogoService
 {
     private readonly IJogoRepository _jogoRepository;
+    private readonly IJogoSearchRepository _searchRepository;
     private readonly IDistributedCache _cache;
 
-    public AlterarStatusJogoService(IJogoRepository jogoRepository, IDistributedCache cache)
+    public AlterarStatusJogoService(
+        IJogoRepository jogoRepository,
+        IJogoSearchRepository searchRepository,
+        IDistributedCache cache)
     {
         _jogoRepository = jogoRepository;
+        _searchRepository = searchRepository;
         _cache = cache;
     }
 
@@ -30,6 +35,7 @@ public class AlterarStatusJogoService
 
         _jogoRepository.Atualizar(jogo);
         await _jogoRepository.SalvarAlteracoes();
+        await _searchRepository.Indexar(jogo);
         await InvalidarCache();
     }
 

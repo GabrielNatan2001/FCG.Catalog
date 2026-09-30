@@ -45,15 +45,28 @@ internal static class TestCache
             .Build();
 }
 
+internal static class TestSearch
+{
+    public static Mock<IJogoSearchRepository> CreateMock()
+    {
+        var search = new Mock<IJogoSearchRepository>();
+        search.Setup(s => s.GarantirIndice()).Returns(Task.CompletedTask);
+        search.Setup(s => s.Indexar(It.IsAny<JogoEntity>())).Returns(Task.CompletedTask);
+        search.Setup(s => s.Remover(It.IsAny<Guid>())).Returns(Task.CompletedTask);
+        return search;
+    }
+}
+
 public class CriarJogoServiceTests
 {
     private readonly Mock<IJogoRepository> _jogoRepository = new();
+    private readonly Mock<IJogoSearchRepository> _searchRepository = TestSearch.CreateMock();
 
     [Fact]
     public async Task Execute_ComDadosValidos_DevePersistirJogo()
     {
         _jogoRepository.Setup(r => r.SalvarAlteracoes()).ReturnsAsync(1);
-        var service = new CriarJogoService(_jogoRepository.Object, TestCache.Create());
+        var service = new CriarJogoService(_jogoRepository.Object, _searchRepository.Object, TestCache.Create());
         var request = new CriarJogoDto.Request
         {
             Nome = "Cyber Quest",
@@ -67,12 +80,14 @@ public class CriarJogoServiceTests
         Assert.NotEqual(Guid.Empty, id);
         _jogoRepository.Verify(r => r.Adicionar(It.IsAny<JogoEntity>()), Times.Once);
         _jogoRepository.Verify(r => r.SalvarAlteracoes(), Times.Once);
+        _searchRepository.Verify(s => s.Indexar(It.IsAny<JogoEntity>()), Times.Once);
     }
 }
 
 public class AtualizarJogoServiceTests
 {
     private readonly Mock<IJogoRepository> _jogoRepository = new();
+    private readonly Mock<IJogoSearchRepository> _searchRepository = TestSearch.CreateMock();
 
     [Fact]
     public async Task Execute_ComJogoInexistente_DeveLancarDomainException()
@@ -80,7 +95,7 @@ public class AtualizarJogoServiceTests
         _jogoRepository.Setup(r => r.ObterPorId(It.IsAny<Guid>()))
             .ReturnsAsync((JogoEntity?)null);
 
-        var service = new AtualizarJogoService(_jogoRepository.Object, TestCache.Create());
+        var service = new AtualizarJogoService(_jogoRepository.Object, _searchRepository.Object, TestCache.Create());
         var request = new AtualizarJogoDto.Request
         {
             Nome = "Novo",
@@ -101,7 +116,7 @@ public class AtualizarJogoServiceTests
         _jogoRepository.Setup(r => r.ObterPorId(jogo.Id)).ReturnsAsync(jogo);
         _jogoRepository.Setup(r => r.SalvarAlteracoes()).ReturnsAsync(1);
 
-        var service = new AtualizarJogoService(_jogoRepository.Object, TestCache.Create());
+        var service = new AtualizarJogoService(_jogoRepository.Object, _searchRepository.Object, TestCache.Create());
         var request = new AtualizarJogoDto.Request
         {
             Nome = "Atualizado",
@@ -114,12 +129,14 @@ public class AtualizarJogoServiceTests
 
         Assert.Equal("Atualizado", jogo.Nome);
         _jogoRepository.Verify(r => r.Atualizar(jogo), Times.Once);
+        _searchRepository.Verify(s => s.Indexar(jogo), Times.Once);
     }
 }
 
 public class AlterarStatusJogoServiceTests
 {
     private readonly Mock<IJogoRepository> _jogoRepository = new();
+    private readonly Mock<IJogoSearchRepository> _searchRepository = TestSearch.CreateMock();
 
     [Fact]
     public async Task Execute_ComJogoAtivo_DeveDesativar()
@@ -128,11 +145,12 @@ public class AlterarStatusJogoServiceTests
         _jogoRepository.Setup(r => r.ObterPorId(jogo.Id)).ReturnsAsync(jogo);
         _jogoRepository.Setup(r => r.SalvarAlteracoes()).ReturnsAsync(1);
 
-        var service = new AlterarStatusJogoService(_jogoRepository.Object, TestCache.Create());
+        var service = new AlterarStatusJogoService(_jogoRepository.Object, _searchRepository.Object, TestCache.Create());
 
         await service.Execute(jogo.Id);
 
         Assert.Equal(EStatus.Inativo, jogo.Status);
+        _searchRepository.Verify(s => s.Indexar(jogo), Times.Once);
     }
 
     [Fact]
@@ -143,11 +161,12 @@ public class AlterarStatusJogoServiceTests
         _jogoRepository.Setup(r => r.ObterPorId(jogo.Id)).ReturnsAsync(jogo);
         _jogoRepository.Setup(r => r.SalvarAlteracoes()).ReturnsAsync(1);
 
-        var service = new AlterarStatusJogoService(_jogoRepository.Object, TestCache.Create());
+        var service = new AlterarStatusJogoService(_jogoRepository.Object, _searchRepository.Object, TestCache.Create());
 
         await service.Execute(jogo.Id);
 
         Assert.Equal(EStatus.Ativo, jogo.Status);
+        _searchRepository.Verify(s => s.Indexar(jogo), Times.Once);
     }
 }
 
@@ -365,5 +384,39 @@ public class ListarBibliotecaServiceTests
 
         Assert.Single(result);
         Assert.Equal("Meu Jogo", result.Single().Nome);
+    }
+}
+
+public class BuscarJogosServiceTests
+{
+    [Fact]
+    public async Task Execute_ComTermoVazio_DeveLancarDomainException()
+    {
+        var search = TestSearch.CreateMock();
+        var service = new BuscarJogosService(search.Object);
+
+        var ex = await Assert.ThrowsAsync<DomainException>(() => service.Execute("  "));
+
+        Assert.Equal("Informe o termo de busca (q).", ex.Message);
+    }
+
+    [Fact]
+    public async Task Execute_ComTermoValido_DeveRetornarHitsOrdenadosPorRelevancia()
+    {
+        var search = TestSearch.CreateMock();
+        var jogoId = Guid.NewGuid();
+        search.Setup(s => s.Buscar("cyber"))
+            .ReturnsAsync(new[]
+            {
+                new JogoSearchHit(jogoId, "Cyber Quest", "Aventura", 49.90m, "Ação", 12.5)
+            });
+
+        var service = new BuscarJogosService(search.Object);
+
+        var result = await service.Execute("cyber");
+
+        Assert.Single(result);
+        Assert.Equal("Cyber Quest", result.Single().Nome);
+        Assert.Equal(12.5, result.Single().Score);
     }
 }
