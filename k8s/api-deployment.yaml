@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: fcg-catalog-api
-          image: gabrielnatan2001/fcg-api-catalog:latest
+          image: fcgacrgabrielnatan.azurecr.io/fcg-api-catalog:latest
           imagePullPolicy: Always
 
           ports:
